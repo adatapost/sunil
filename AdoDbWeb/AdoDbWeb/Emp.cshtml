@@ -1,0 +1,69 @@
+﻿@using System.Data.SqlClient
+@{
+    var empId = Request["empId"].AsInt();
+    var empName = Request["empName"] ?? "";
+    var joinDate = Request["joinDate"].AsDateTime();
+    var message = "";
+    var cmd = Request["cmd"] ?? "";
+    var isFound = false;
+
+    var CnStr = @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename=|DataDirectory|\EmpDb.mdf;Integrated Security=True";
+    SqlConnection cn = null;
+    SqlCommand cm = null;
+    SqlDataReader rd = null;
+
+    if (!IsPost)
+    {
+        cmd = "";
+    }
+    if("Add".Equals(cmd))
+    {
+        using (cn = new SqlConnection(CnStr))
+        {
+            using (cm = new SqlCommand())
+            {
+                cm.Connection = cn;
+                cm.CommandText = "select empid from emp where empid=@p1";
+                cm.Parameters.AddWithValue("@p1", empId);
+                cn.Open();
+                var result = cm.ExecuteScalar();
+                if(result!=null)
+                {
+                    isFound = true;
+                }
+                cn.Close();
+            }
+
+            if (!isFound)
+            {
+                using (cm = new SqlCommand())
+                {
+                    cm.Connection = cn;
+                    cm.CommandText = "insert into emp values (@p1,@p2,@p3)";
+                    cm.Parameters.AddWithValue("@p1", empId);
+                    cm.Parameters.AddWithValue("@p2", empName);
+                    cm.Parameters.AddWithValue("@p3", joinDate);
+
+                    cn.Open();
+                    cm.ExecuteNonQuery();
+                    message = "Record added successfully";
+                    cn.Close();
+                }
+            } else
+            {
+                message = "Given EmpId already exists. Reenter please";
+            }
+        }
+    }
+
+}
+
+<form method="post">
+    <p>ID : <input type="number" name="empId" value="@empId"/></p>
+    <p>Name : <input type="text" name="empName" value="@empName" /></p>
+    <p>Date : <input type="date" name="joinDate" value="@joinDate.ToString("yyyy-MM-dd")" /></p>
+    <p>@message</p>
+    <p>
+        <button name="cmd" value="Add">Add</button>
+    </p>
+</form>
